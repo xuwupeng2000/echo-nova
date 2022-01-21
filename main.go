@@ -14,13 +14,13 @@ import (
 )
 
 func main() {
-	conn := setupDB()
+	setupDB()
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 	e.GET("/users", func(c echo.Context) error {
-		users, err := db.Users().All(conn)
+		users, err := db.Users().AllG()
 		fmt.Println(users, err)
 		justDie(err)
 		return c.JSON(http.StatusOK, users)

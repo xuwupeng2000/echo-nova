@@ -291,6 +291,21 @@ func AddUserHook(hookPoint boil.HookPoint, userHook UserHook) {
 	}
 }
 
+// OneG returns a single user record from the query using the global executor.
+func (q userQuery) OneG() (*User, error) {
+	return q.One(boil.GetDB())
+}
+
+// OneGP returns a single user record from the query using the global executor, and panics on error.
+func (q userQuery) OneGP() *User {
+	o, err := q.One(boil.GetDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // OneP returns a single user record from the query, and panics on error.
 func (q userQuery) OneP(exec boil.Executor) *User {
 	o, err := q.One(exec)
@@ -320,6 +335,21 @@ func (q userQuery) One(exec boil.Executor) (*User, error) {
 	}
 
 	return o, nil
+}
+
+// AllG returns all User records from the query using the global executor.
+func (q userQuery) AllG() (UserSlice, error) {
+	return q.All(boil.GetDB())
+}
+
+// AllGP returns all User records from the query using the global executor, and panics on error.
+func (q userQuery) AllGP() UserSlice {
+	o, err := q.All(boil.GetDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
 }
 
 // AllP returns all User records from the query, and panics on error.
@@ -352,6 +382,21 @@ func (q userQuery) All(exec boil.Executor) (UserSlice, error) {
 	return o, nil
 }
 
+// CountG returns the count of all User records in the query, and panics on error.
+func (q userQuery) CountG() (int64, error) {
+	return q.Count(boil.GetDB())
+}
+
+// CountGP returns the count of all User records in the query using the global executor, and panics on error.
+func (q userQuery) CountGP() int64 {
+	c, err := q.Count(boil.GetDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // CountP returns the count of all User records in the query, and panics on error.
 func (q userQuery) CountP(exec boil.Executor) int64 {
 	c, err := q.Count(exec)
@@ -375,6 +420,21 @@ func (q userQuery) Count(exec boil.Executor) (int64, error) {
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table, and panics on error.
+func (q userQuery) ExistsG() (bool, error) {
+	return q.Exists(boil.GetDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q userQuery) ExistsGP() bool {
+	e, err := q.Exists(boil.GetDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // ExistsP checks if the row exists in the table, and panics on error.
@@ -409,9 +469,24 @@ func Users(mods ...qm.QueryMod) userQuery {
 	return userQuery{NewQuery(mods...)}
 }
 
+// FindUserG retrieves a single record by ID.
+func FindUserG(iD int64, selectCols ...string) (*User, error) {
+	return FindUser(boil.GetDB(), iD, selectCols...)
+}
+
 // FindUserP retrieves a single record by ID with an executor, and panics on error.
 func FindUserP(exec boil.Executor, iD int64, selectCols ...string) *User {
 	retobj, err := FindUser(exec, iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
+}
+
+// FindUserGP retrieves a single record by ID, and panics on error.
+func FindUserGP(iD int64, selectCols ...string) *User {
+	retobj, err := FindUser(boil.GetDB(), iD, selectCols...)
 	if err != nil {
 		panic(boil.WrapErr(err))
 	}
@@ -449,10 +524,23 @@ func FindUser(exec boil.Executor, iD int64, selectCols ...string) (*User, error)
 	return userObj, nil
 }
 
+// InsertG a single record. See Insert for whitelist behavior description.
+func (o *User) InsertG(columns boil.Columns) error {
+	return o.Insert(boil.GetDB(), columns)
+}
+
 // InsertP a single record using an executor, and panics on error. See Insert
 // for whitelist behavior description.
 func (o *User) InsertP(exec boil.Executor, columns boil.Columns) {
 	if err := o.Insert(exec, columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// InsertGP a single record, and panics on error. See Insert for whitelist
+// behavior description.
+func (o *User) InsertGP(columns boil.Columns) {
+	if err := o.Insert(boil.GetDB(), columns); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
@@ -569,10 +657,27 @@ CacheNoHooks:
 	return o.doAfterInsertHooks(exec)
 }
 
+// UpdateG a single User record using the global executor.
+// See Update for more documentation.
+func (o *User) UpdateG(columns boil.Columns) (int64, error) {
+	return o.Update(boil.GetDB(), columns)
+}
+
 // UpdateP uses an executor to update the User, and panics on error.
 // See Update for more documentation.
 func (o *User) UpdateP(exec boil.Executor, columns boil.Columns) int64 {
 	rowsAff, err := o.Update(exec, columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateGP a single User record using the global executor. Panics on error.
+// See Update for more documentation.
+func (o *User) UpdateGP(columns boil.Columns) int64 {
+	rowsAff, err := o.Update(boil.GetDB(), columns)
 	if err != nil {
 		panic(boil.WrapErr(err))
 	}
@@ -656,6 +761,11 @@ func (q userQuery) UpdateAllP(exec boil.Executor, cols M) int64 {
 	return rowsAff
 }
 
+// UpdateAllG updates all rows with the specified column values.
+func (q userQuery) UpdateAllG(cols M) (int64, error) {
+	return q.UpdateAll(boil.GetDB(), cols)
+}
+
 // UpdateAll updates all rows with the specified column values.
 func (q userQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
@@ -671,6 +781,21 @@ func (q userQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	}
 
 	return rowsAff, nil
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (o UserSlice) UpdateAllG(cols M) (int64, error) {
+	return o.UpdateAll(boil.GetDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (o UserSlice) UpdateAllGP(cols M) int64 {
+	rowsAff, err := o.UpdateAll(boil.GetDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // UpdateAllP updates all rows with the specified column values, and panics on error.
@@ -728,6 +853,18 @@ func (o UserSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 		return 0, errors.Wrap(err, "db: unable to retrieve rows affected all in update all user")
 	}
 	return rowsAff, nil
+}
+
+// UpsertG attempts an insert, and does an update or ignore on conflict.
+func (o *User) UpsertG(updateColumns, insertColumns boil.Columns) error {
+	return o.Upsert(boil.GetDB(), updateColumns, insertColumns)
+}
+
+// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
+func (o *User) UpsertGP(updateColumns, insertColumns boil.Columns) {
+	if err := o.Upsert(boil.GetDB(), updateColumns, insertColumns); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
@@ -890,11 +1027,29 @@ CacheNoHooks:
 	return o.doAfterUpsertHooks(exec)
 }
 
+// DeleteG deletes a single User record.
+// DeleteG will match against the primary key column to find the record to delete.
+func (o *User) DeleteG() (int64, error) {
+	return o.Delete(boil.GetDB())
+}
+
 // DeleteP deletes a single User record with an executor.
 // DeleteP will match against the primary key column to find the record to delete.
 // Panics on error.
 func (o *User) DeleteP(exec boil.Executor) int64 {
 	rowsAff, err := o.Delete(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteGP deletes a single User record.
+// DeleteGP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *User) DeleteGP() int64 {
+	rowsAff, err := o.Delete(boil.GetDB())
 	if err != nil {
 		panic(boil.WrapErr(err))
 	}
@@ -937,6 +1092,10 @@ func (o *User) Delete(exec boil.Executor) (int64, error) {
 	return rowsAff, nil
 }
 
+func (q userQuery) DeleteAllG() (int64, error) {
+	return q.DeleteAll(boil.GetDB())
+}
+
 // DeleteAllP deletes all rows, and panics on error.
 func (q userQuery) DeleteAllP(exec boil.Executor) int64 {
 	rowsAff, err := q.DeleteAll(exec)
@@ -968,9 +1127,24 @@ func (q userQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	return rowsAff, nil
 }
 
+// DeleteAllG deletes all rows in the slice.
+func (o UserSlice) DeleteAllG() (int64, error) {
+	return o.DeleteAll(boil.GetDB())
+}
+
 // DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
 func (o UserSlice) DeleteAllP(exec boil.Executor) int64 {
 	rowsAff, err := o.DeleteAll(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows in the slice, and panics on error.
+func (o UserSlice) DeleteAllGP() int64 {
+	rowsAff, err := o.DeleteAll(boil.GetDB())
 	if err != nil {
 		panic(boil.WrapErr(err))
 	}
@@ -1026,9 +1200,25 @@ func (o UserSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	return rowsAff, nil
 }
 
+// ReloadG refetches the object from the database using the primary keys.
+func (o *User) ReloadG() error {
+	if o == nil {
+		return errors.New("db: no User provided for reload")
+	}
+
+	return o.Reload(boil.GetDB())
+}
+
 // ReloadP refetches the object from the database with an executor. Panics on error.
 func (o *User) ReloadP(exec boil.Executor) {
 	if err := o.Reload(exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadGP refetches the object from the database and panics on error.
+func (o *User) ReloadGP() {
+	if err := o.Reload(boil.GetDB()); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
@@ -1045,11 +1235,30 @@ func (o *User) Reload(exec boil.Executor) error {
 	return nil
 }
 
+// ReloadAllG refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+func (o *UserSlice) ReloadAllG() error {
+	if o == nil {
+		return errors.New("db: empty UserSlice provided for reload all")
+	}
+
+	return o.ReloadAll(boil.GetDB())
+}
+
 // ReloadAllP refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
 // Panics on error.
 func (o *UserSlice) ReloadAllP(exec boil.Executor) {
 	if err := o.ReloadAll(exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadAllGP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *UserSlice) ReloadAllGP() {
+	if err := o.ReloadAll(boil.GetDB()); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
@@ -1083,9 +1292,24 @@ func (o *UserSlice) ReloadAll(exec boil.Executor) error {
 	return nil
 }
 
+// UserExistsG checks if the User row exists.
+func UserExistsG(iD int64) (bool, error) {
+	return UserExists(boil.GetDB(), iD)
+}
+
 // UserExistsP checks if the User row exists. Panics on error.
 func UserExistsP(exec boil.Executor, iD int64) bool {
 	e, err := UserExists(exec, iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// UserExistsGP checks if the User row exists. Panics on error.
+func UserExistsGP(iD int64) bool {
+	e, err := UserExists(boil.GetDB(), iD)
 	if err != nil {
 		panic(boil.WrapErr(err))
 	}

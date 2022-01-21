@@ -358,6 +358,21 @@ func AddEventHook(hookPoint boil.HookPoint, eventHook EventHook) {
 	}
 }
 
+// OneG returns a single event record from the query using the global executor.
+func (q eventQuery) OneG() (*Event, error) {
+	return q.One(boil.GetDB())
+}
+
+// OneGP returns a single event record from the query using the global executor, and panics on error.
+func (q eventQuery) OneGP() *Event {
+	o, err := q.One(boil.GetDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // OneP returns a single event record from the query, and panics on error.
 func (q eventQuery) OneP(exec boil.Executor) *Event {
 	o, err := q.One(exec)
@@ -387,6 +402,21 @@ func (q eventQuery) One(exec boil.Executor) (*Event, error) {
 	}
 
 	return o, nil
+}
+
+// AllG returns all Event records from the query using the global executor.
+func (q eventQuery) AllG() (EventSlice, error) {
+	return q.All(boil.GetDB())
+}
+
+// AllGP returns all Event records from the query using the global executor, and panics on error.
+func (q eventQuery) AllGP() EventSlice {
+	o, err := q.All(boil.GetDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
 }
 
 // AllP returns all Event records from the query, and panics on error.
@@ -419,6 +449,21 @@ func (q eventQuery) All(exec boil.Executor) (EventSlice, error) {
 	return o, nil
 }
 
+// CountG returns the count of all Event records in the query, and panics on error.
+func (q eventQuery) CountG() (int64, error) {
+	return q.Count(boil.GetDB())
+}
+
+// CountGP returns the count of all Event records in the query using the global executor, and panics on error.
+func (q eventQuery) CountGP() int64 {
+	c, err := q.Count(boil.GetDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // CountP returns the count of all Event records in the query, and panics on error.
 func (q eventQuery) CountP(exec boil.Executor) int64 {
 	c, err := q.Count(exec)
@@ -442,6 +487,21 @@ func (q eventQuery) Count(exec boil.Executor) (int64, error) {
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table, and panics on error.
+func (q eventQuery) ExistsG() (bool, error) {
+	return q.Exists(boil.GetDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q eventQuery) ExistsGP() bool {
+	e, err := q.Exists(boil.GetDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // ExistsP checks if the row exists in the table, and panics on error.
@@ -476,9 +536,24 @@ func Events(mods ...qm.QueryMod) eventQuery {
 	return eventQuery{NewQuery(mods...)}
 }
 
+// FindEventG retrieves a single record by ID.
+func FindEventG(iD int64, selectCols ...string) (*Event, error) {
+	return FindEvent(boil.GetDB(), iD, selectCols...)
+}
+
 // FindEventP retrieves a single record by ID with an executor, and panics on error.
 func FindEventP(exec boil.Executor, iD int64, selectCols ...string) *Event {
 	retobj, err := FindEvent(exec, iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
+}
+
+// FindEventGP retrieves a single record by ID, and panics on error.
+func FindEventGP(iD int64, selectCols ...string) *Event {
+	retobj, err := FindEvent(boil.GetDB(), iD, selectCols...)
 	if err != nil {
 		panic(boil.WrapErr(err))
 	}
@@ -516,10 +591,23 @@ func FindEvent(exec boil.Executor, iD int64, selectCols ...string) (*Event, erro
 	return eventObj, nil
 }
 
+// InsertG a single record. See Insert for whitelist behavior description.
+func (o *Event) InsertG(columns boil.Columns) error {
+	return o.Insert(boil.GetDB(), columns)
+}
+
 // InsertP a single record using an executor, and panics on error. See Insert
 // for whitelist behavior description.
 func (o *Event) InsertP(exec boil.Executor, columns boil.Columns) {
 	if err := o.Insert(exec, columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// InsertGP a single record, and panics on error. See Insert for whitelist
+// behavior description.
+func (o *Event) InsertGP(columns boil.Columns) {
+	if err := o.Insert(boil.GetDB(), columns); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
@@ -636,10 +724,27 @@ CacheNoHooks:
 	return o.doAfterInsertHooks(exec)
 }
 
+// UpdateG a single Event record using the global executor.
+// See Update for more documentation.
+func (o *Event) UpdateG(columns boil.Columns) (int64, error) {
+	return o.Update(boil.GetDB(), columns)
+}
+
 // UpdateP uses an executor to update the Event, and panics on error.
 // See Update for more documentation.
 func (o *Event) UpdateP(exec boil.Executor, columns boil.Columns) int64 {
 	rowsAff, err := o.Update(exec, columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateGP a single Event record using the global executor. Panics on error.
+// See Update for more documentation.
+func (o *Event) UpdateGP(columns boil.Columns) int64 {
+	rowsAff, err := o.Update(boil.GetDB(), columns)
 	if err != nil {
 		panic(boil.WrapErr(err))
 	}
@@ -723,6 +828,11 @@ func (q eventQuery) UpdateAllP(exec boil.Executor, cols M) int64 {
 	return rowsAff
 }
 
+// UpdateAllG updates all rows with the specified column values.
+func (q eventQuery) UpdateAllG(cols M) (int64, error) {
+	return q.UpdateAll(boil.GetDB(), cols)
+}
+
 // UpdateAll updates all rows with the specified column values.
 func (q eventQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
@@ -738,6 +848,21 @@ func (q eventQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	}
 
 	return rowsAff, nil
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (o EventSlice) UpdateAllG(cols M) (int64, error) {
+	return o.UpdateAll(boil.GetDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (o EventSlice) UpdateAllGP(cols M) int64 {
+	rowsAff, err := o.UpdateAll(boil.GetDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // UpdateAllP updates all rows with the specified column values, and panics on error.
@@ -795,6 +920,18 @@ func (o EventSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 		return 0, errors.Wrap(err, "db: unable to retrieve rows affected all in update all event")
 	}
 	return rowsAff, nil
+}
+
+// UpsertG attempts an insert, and does an update or ignore on conflict.
+func (o *Event) UpsertG(updateColumns, insertColumns boil.Columns) error {
+	return o.Upsert(boil.GetDB(), updateColumns, insertColumns)
+}
+
+// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
+func (o *Event) UpsertGP(updateColumns, insertColumns boil.Columns) {
+	if err := o.Upsert(boil.GetDB(), updateColumns, insertColumns); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
@@ -958,11 +1095,29 @@ CacheNoHooks:
 	return o.doAfterUpsertHooks(exec)
 }
 
+// DeleteG deletes a single Event record.
+// DeleteG will match against the primary key column to find the record to delete.
+func (o *Event) DeleteG() (int64, error) {
+	return o.Delete(boil.GetDB())
+}
+
 // DeleteP deletes a single Event record with an executor.
 // DeleteP will match against the primary key column to find the record to delete.
 // Panics on error.
 func (o *Event) DeleteP(exec boil.Executor) int64 {
 	rowsAff, err := o.Delete(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteGP deletes a single Event record.
+// DeleteGP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *Event) DeleteGP() int64 {
+	rowsAff, err := o.Delete(boil.GetDB())
 	if err != nil {
 		panic(boil.WrapErr(err))
 	}
@@ -1005,6 +1160,10 @@ func (o *Event) Delete(exec boil.Executor) (int64, error) {
 	return rowsAff, nil
 }
 
+func (q eventQuery) DeleteAllG() (int64, error) {
+	return q.DeleteAll(boil.GetDB())
+}
+
 // DeleteAllP deletes all rows, and panics on error.
 func (q eventQuery) DeleteAllP(exec boil.Executor) int64 {
 	rowsAff, err := q.DeleteAll(exec)
@@ -1036,9 +1195,24 @@ func (q eventQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	return rowsAff, nil
 }
 
+// DeleteAllG deletes all rows in the slice.
+func (o EventSlice) DeleteAllG() (int64, error) {
+	return o.DeleteAll(boil.GetDB())
+}
+
 // DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
 func (o EventSlice) DeleteAllP(exec boil.Executor) int64 {
 	rowsAff, err := o.DeleteAll(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows in the slice, and panics on error.
+func (o EventSlice) DeleteAllGP() int64 {
+	rowsAff, err := o.DeleteAll(boil.GetDB())
 	if err != nil {
 		panic(boil.WrapErr(err))
 	}
@@ -1094,9 +1268,25 @@ func (o EventSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	return rowsAff, nil
 }
 
+// ReloadG refetches the object from the database using the primary keys.
+func (o *Event) ReloadG() error {
+	if o == nil {
+		return errors.New("db: no Event provided for reload")
+	}
+
+	return o.Reload(boil.GetDB())
+}
+
 // ReloadP refetches the object from the database with an executor. Panics on error.
 func (o *Event) ReloadP(exec boil.Executor) {
 	if err := o.Reload(exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadGP refetches the object from the database and panics on error.
+func (o *Event) ReloadGP() {
+	if err := o.Reload(boil.GetDB()); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
@@ -1113,11 +1303,30 @@ func (o *Event) Reload(exec boil.Executor) error {
 	return nil
 }
 
+// ReloadAllG refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+func (o *EventSlice) ReloadAllG() error {
+	if o == nil {
+		return errors.New("db: empty EventSlice provided for reload all")
+	}
+
+	return o.ReloadAll(boil.GetDB())
+}
+
 // ReloadAllP refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
 // Panics on error.
 func (o *EventSlice) ReloadAllP(exec boil.Executor) {
 	if err := o.ReloadAll(exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadAllGP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *EventSlice) ReloadAllGP() {
+	if err := o.ReloadAll(boil.GetDB()); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
@@ -1151,9 +1360,24 @@ func (o *EventSlice) ReloadAll(exec boil.Executor) error {
 	return nil
 }
 
+// EventExistsG checks if the Event row exists.
+func EventExistsG(iD int64) (bool, error) {
+	return EventExists(boil.GetDB(), iD)
+}
+
 // EventExistsP checks if the Event row exists. Panics on error.
 func EventExistsP(exec boil.Executor, iD int64) bool {
 	e, err := EventExists(exec, iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// EventExistsGP checks if the Event row exists. Panics on error.
+func EventExistsGP(iD int64) bool {
+	e, err := EventExists(boil.GetDB(), iD)
 	if err != nil {
 		panic(boil.WrapErr(err))
 	}

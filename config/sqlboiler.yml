@@ -5,6 +5,7 @@ no-tests: true
 debug: true
 add-panic-variants: true	
 no-context: true
+add-global-variants: true
 
 mysql:
   dbname: "calendars"
