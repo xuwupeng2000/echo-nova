@@ -47,7 +47,7 @@ func main() {
 	e.POST("/users", func(c echo.Context) error {
 		name := c.FormValue("name")
 		age, _ := strconv.Atoi(c.FormValue("age"))
-		var user db.User
+		user := new(db.User)
 		user.Name = name
 		user.Age = null.Int{age, true}
 		user.InsertGP(boil.Infer())
