@@ -7,6 +7,8 @@ import (
 
 	"github.com/labstack/echo"
 	j "github.com/ricardolonga/jsongo"
+	"github.com/volatiletech/null/v8"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 	. "github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
@@ -43,7 +45,14 @@ func main() {
 		return c.JSON(http.StatusOK, json)
 	})
 	e.POST("/users", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, "")
+		name := c.FormValue("name")
+		age, _ := strconv.Atoi(c.FormValue("age"))
+		var user db.User
+		user.Name = name
+		user.Age = null.Int{age, true}
+		user.InsertGP(boil.Infer())
+
+		return c.JSON(http.StatusOK, user)
 	})
 	e.PUT("/users/:id", func(c echo.Context) error {
 		id := c.Param("id")
