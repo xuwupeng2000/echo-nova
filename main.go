@@ -58,18 +58,12 @@ func setupDB() *sql.DB {
 		database,
 	)
 	conn, err := sql.Open("mysql", dsn)
-	if err != nil {
-		panic(err)
-	}
-
+	justDie(err)
 	boil.SetDB(conn)
 	boil.DebugMode = true
 
-	users, err := db.Users().All(conn)
-	fmt.Println(users, err)
-	justDie(err)
+	// seed数据
 	users_count := db.Users().CountP(conn)
-
 	if users_count == 0 {
 		list := []struct {
 			name string
