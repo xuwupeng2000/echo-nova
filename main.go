@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	. "github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 func main() {
@@ -21,9 +22,16 @@ func main() {
 	})
 	e.GET("/users", func(c echo.Context) error {
 		users, err := db.Users().AllG()
-		fmt.Println(users, err)
 		justDie(err)
 		return c.JSON(http.StatusOK, users)
+	})
+	e.GET("/users/:id", func(c echo.Context) error {
+		id := c.Param("id")
+		user, err := db.Users(
+			Where("id = ?", id),
+		).OneG()
+		justDie(err)
+		return c.JSON(http.StatusOK, user)
 	})
 	e.Logger.Fatal(e.Start(":3000"))
 }
