@@ -4,7 +4,6 @@
 package db
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -196,6 +195,8 @@ type (
 	// EventSlice is an alias for a slice of pointers to Event.
 	// This should almost always be used instead of []Event.
 	EventSlice []*Event
+	// EventHook is the signature for custom Event hook methods
+	EventHook func(boil.Executor, *Event) error
 
 	eventQuery struct {
 		*queries.Query
@@ -223,61 +224,247 @@ var (
 	_ = qmhelper.Where
 )
 
+var eventBeforeInsertHooks []EventHook
+var eventBeforeUpdateHooks []EventHook
+var eventBeforeDeleteHooks []EventHook
+var eventBeforeUpsertHooks []EventHook
+
+var eventAfterInsertHooks []EventHook
+var eventAfterSelectHooks []EventHook
+var eventAfterUpdateHooks []EventHook
+var eventAfterDeleteHooks []EventHook
+var eventAfterUpsertHooks []EventHook
+
+// doBeforeInsertHooks executes all "before insert" hooks.
+func (o *Event) doBeforeInsertHooks(exec boil.Executor) (err error) {
+	for _, hook := range eventBeforeInsertHooks {
+		if err := hook(exec, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doBeforeUpdateHooks executes all "before Update" hooks.
+func (o *Event) doBeforeUpdateHooks(exec boil.Executor) (err error) {
+	for _, hook := range eventBeforeUpdateHooks {
+		if err := hook(exec, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doBeforeDeleteHooks executes all "before Delete" hooks.
+func (o *Event) doBeforeDeleteHooks(exec boil.Executor) (err error) {
+	for _, hook := range eventBeforeDeleteHooks {
+		if err := hook(exec, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doBeforeUpsertHooks executes all "before Upsert" hooks.
+func (o *Event) doBeforeUpsertHooks(exec boil.Executor) (err error) {
+	for _, hook := range eventBeforeUpsertHooks {
+		if err := hook(exec, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doAfterInsertHooks executes all "after Insert" hooks.
+func (o *Event) doAfterInsertHooks(exec boil.Executor) (err error) {
+	for _, hook := range eventAfterInsertHooks {
+		if err := hook(exec, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doAfterSelectHooks executes all "after Select" hooks.
+func (o *Event) doAfterSelectHooks(exec boil.Executor) (err error) {
+	for _, hook := range eventAfterSelectHooks {
+		if err := hook(exec, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doAfterUpdateHooks executes all "after Update" hooks.
+func (o *Event) doAfterUpdateHooks(exec boil.Executor) (err error) {
+	for _, hook := range eventAfterUpdateHooks {
+		if err := hook(exec, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doAfterDeleteHooks executes all "after Delete" hooks.
+func (o *Event) doAfterDeleteHooks(exec boil.Executor) (err error) {
+	for _, hook := range eventAfterDeleteHooks {
+		if err := hook(exec, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doAfterUpsertHooks executes all "after Upsert" hooks.
+func (o *Event) doAfterUpsertHooks(exec boil.Executor) (err error) {
+	for _, hook := range eventAfterUpsertHooks {
+		if err := hook(exec, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AddEventHook registers your hook function for all future operations.
+func AddEventHook(hookPoint boil.HookPoint, eventHook EventHook) {
+	switch hookPoint {
+	case boil.BeforeInsertHook:
+		eventBeforeInsertHooks = append(eventBeforeInsertHooks, eventHook)
+	case boil.BeforeUpdateHook:
+		eventBeforeUpdateHooks = append(eventBeforeUpdateHooks, eventHook)
+	case boil.BeforeDeleteHook:
+		eventBeforeDeleteHooks = append(eventBeforeDeleteHooks, eventHook)
+	case boil.BeforeUpsertHook:
+		eventBeforeUpsertHooks = append(eventBeforeUpsertHooks, eventHook)
+	case boil.AfterInsertHook:
+		eventAfterInsertHooks = append(eventAfterInsertHooks, eventHook)
+	case boil.AfterSelectHook:
+		eventAfterSelectHooks = append(eventAfterSelectHooks, eventHook)
+	case boil.AfterUpdateHook:
+		eventAfterUpdateHooks = append(eventAfterUpdateHooks, eventHook)
+	case boil.AfterDeleteHook:
+		eventAfterDeleteHooks = append(eventAfterDeleteHooks, eventHook)
+	case boil.AfterUpsertHook:
+		eventAfterUpsertHooks = append(eventAfterUpsertHooks, eventHook)
+	}
+}
+
+// OneP returns a single event record from the query, and panics on error.
+func (q eventQuery) OneP(exec boil.Executor) *Event {
+	o, err := q.One(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // One returns a single event record from the query.
-func (q eventQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Event, error) {
+func (q eventQuery) One(exec boil.Executor) (*Event, error) {
 	o := &Event{}
 
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Bind(ctx, exec, o)
+	err := q.Bind(nil, exec, o)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "repo: failed to execute a one query for events")
+		return nil, errors.Wrap(err, "db: failed to execute a one query for events")
+	}
+
+	if err := o.doAfterSelectHooks(exec); err != nil {
+		return o, err
 	}
 
 	return o, nil
+}
+
+// AllP returns all Event records from the query, and panics on error.
+func (q eventQuery) AllP(exec boil.Executor) EventSlice {
+	o, err := q.All(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
 }
 
 // All returns all Event records from the query.
-func (q eventQuery) All(ctx context.Context, exec boil.ContextExecutor) (EventSlice, error) {
+func (q eventQuery) All(exec boil.Executor) (EventSlice, error) {
 	var o []*Event
 
-	err := q.Bind(ctx, exec, &o)
+	err := q.Bind(nil, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "repo: failed to assign all query results to Event slice")
+		return nil, errors.Wrap(err, "db: failed to assign all query results to Event slice")
+	}
+
+	if len(eventAfterSelectHooks) != 0 {
+		for _, obj := range o {
+			if err := obj.doAfterSelectHooks(exec); err != nil {
+				return o, err
+			}
+		}
 	}
 
 	return o, nil
 }
 
+// CountP returns the count of all Event records in the query, and panics on error.
+func (q eventQuery) CountP(exec boil.Executor) int64 {
+	c, err := q.Count(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // Count returns the count of all Event records in the query.
-func (q eventQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q eventQuery) Count(exec boil.Executor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: failed to count events rows")
+		return 0, errors.Wrap(err, "db: failed to count events rows")
 	}
 
 	return count, nil
 }
 
+// ExistsP checks if the row exists in the table, and panics on error.
+func (q eventQuery) ExistsP(exec boil.Executor) bool {
+	e, err := q.Exists(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
 // Exists checks if the row exists in the table.
-func (q eventQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q eventQuery) Exists(exec boil.Executor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
 	queries.SetCount(q.Query)
 	queries.SetLimit(q.Query, 1)
 
-	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
+	err := q.Query.QueryRow(exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "repo: failed to check if events exists")
+		return false, errors.Wrap(err, "db: failed to check if events exists")
 	}
 
 	return count > 0, nil
@@ -289,9 +476,19 @@ func Events(mods ...qm.QueryMod) eventQuery {
 	return eventQuery{NewQuery(mods...)}
 }
 
+// FindEventP retrieves a single record by ID with an executor, and panics on error.
+func FindEventP(exec boil.Executor, iD int64, selectCols ...string) *Event {
+	retobj, err := FindEvent(exec, iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
+}
+
 // FindEvent retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindEvent(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*Event, error) {
+func FindEvent(exec boil.Executor, iD int64, selectCols ...string) (*Event, error) {
 	eventObj := &Event{}
 
 	sel := "*"
@@ -304,34 +501,48 @@ func FindEvent(ctx context.Context, exec boil.ContextExecutor, iD int64, selectC
 
 	q := queries.Raw(query, iD)
 
-	err := q.Bind(ctx, exec, eventObj)
+	err := q.Bind(nil, exec, eventObj)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "repo: unable to select from events")
+		return nil, errors.Wrap(err, "db: unable to select from events")
+	}
+
+	if err = eventObj.doAfterSelectHooks(exec); err != nil {
+		return eventObj, err
 	}
 
 	return eventObj, nil
 }
 
+// InsertP a single record using an executor, and panics on error. See Insert
+// for whitelist behavior description.
+func (o *Event) InsertP(exec boil.Executor, columns boil.Columns) {
+	if err := o.Insert(exec, columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *Event) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *Event) Insert(exec boil.Executor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("repo: no events provided for insertion")
+		return errors.New("db: no events provided for insertion")
 	}
 
 	var err error
-	if !boil.TimestampsAreSkipped(ctx) {
-		currTime := time.Now().In(boil.GetLocation())
+	currTime := time.Now().In(boil.GetLocation())
 
-		if o.CreatedAt.IsZero() {
-			o.CreatedAt = currTime
-		}
-		if queries.MustTime(o.UpdatedAt).IsZero() {
-			queries.SetScanner(&o.UpdatedAt, currTime)
-		}
+	if o.CreatedAt.IsZero() {
+		o.CreatedAt = currTime
+	}
+	if queries.MustTime(o.UpdatedAt).IsZero() {
+		queries.SetScanner(&o.UpdatedAt, currTime)
+	}
+
+	if err := o.doBeforeInsertHooks(exec); err != nil {
+		return err
 	}
 
 	nzDefaults := queries.NonZeroDefaultSet(eventColumnsWithDefault, o)
@@ -375,15 +586,14 @@ func (o *Event) Insert(ctx context.Context, exec boil.ContextExecutor, columns b
 	value := reflect.Indirect(reflect.ValueOf(o))
 	vals := queries.ValuesFromMapping(value, cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.ExecContext(ctx, cache.query, vals...)
+	result, err := exec.Exec(cache.query, vals...)
 
 	if err != nil {
-		return errors.Wrap(err, "repo: unable to insert into events")
+		return errors.Wrap(err, "db: unable to insert into events")
 	}
 
 	var lastID int64
@@ -407,14 +617,13 @@ func (o *Event) Insert(ctx context.Context, exec boil.ContextExecutor, columns b
 		o.ID,
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.retQuery)
-		fmt.Fprintln(writer, identifierCols...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
+		fmt.Fprintln(boil.DebugWriter, identifierCols...)
 	}
-	err = exec.QueryRowContext(ctx, cache.retQuery, identifierCols...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+	err = exec.QueryRow(cache.retQuery, identifierCols...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
 	if err != nil {
-		return errors.Wrap(err, "repo: unable to populate default values for events")
+		return errors.Wrap(err, "db: unable to populate default values for events")
 	}
 
 CacheNoHooks:
@@ -424,20 +633,32 @@ CacheNoHooks:
 		eventInsertCacheMut.Unlock()
 	}
 
-	return nil
+	return o.doAfterInsertHooks(exec)
+}
+
+// UpdateP uses an executor to update the Event, and panics on error.
+// See Update for more documentation.
+func (o *Event) UpdateP(exec boil.Executor, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(exec, columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // Update uses an executor to update the Event.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *Event) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
-	if !boil.TimestampsAreSkipped(ctx) {
-		currTime := time.Now().In(boil.GetLocation())
+func (o *Event) Update(exec boil.Executor, columns boil.Columns) (int64, error) {
+	currTime := time.Now().In(boil.GetLocation())
 
-		queries.SetScanner(&o.UpdatedAt, currTime)
-	}
+	queries.SetScanner(&o.UpdatedAt, currTime)
 
 	var err error
+	if err = o.doBeforeUpdateHooks(exec); err != nil {
+		return 0, err
+	}
 	key := makeCacheKey(columns, nil)
 	eventUpdateCacheMut.RLock()
 	cache, cached := eventUpdateCache[key]
@@ -453,7 +674,7 @@ func (o *Event) Update(ctx context.Context, exec boil.ContextExecutor, columns b
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("repo: unable to update events, could not build whitelist")
+			return 0, errors.New("db: unable to update events, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE `events` SET %s WHERE %s",
@@ -468,20 +689,19 @@ func (o *Event) Update(ctx context.Context, exec boil.ContextExecutor, columns b
 
 	values := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), cache.valueMapping)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, values)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, values)
 	}
 	var result sql.Result
-	result, err = exec.ExecContext(ctx, cache.query, values...)
+	result, err = exec.Exec(cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: unable to update events row")
+		return 0, errors.Wrap(err, "db: unable to update events row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: failed to get rows affected by update for events")
+		return 0, errors.Wrap(err, "db: failed to get rows affected by update for events")
 	}
 
 	if !cached {
@@ -490,35 +710,55 @@ func (o *Event) Update(ctx context.Context, exec boil.ContextExecutor, columns b
 		eventUpdateCacheMut.Unlock()
 	}
 
-	return rowsAff, nil
+	return rowsAff, o.doAfterUpdateHooks(exec)
+}
+
+// UpdateAllP updates all rows with matching column names, and panics on error.
+func (q eventQuery) UpdateAllP(exec boil.Executor, cols M) int64 {
+	rowsAff, err := q.UpdateAll(exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q eventQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q eventQuery) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: unable to update all for events")
+		return 0, errors.Wrap(err, "db: unable to update all for events")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: unable to retrieve rows affected for events")
+		return 0, errors.Wrap(err, "db: unable to retrieve rows affected for events")
 	}
 
 	return rowsAff, nil
 }
 
+// UpdateAllP updates all rows with the specified column values, and panics on error.
+func (o EventSlice) UpdateAllP(exec boil.Executor, cols M) int64 {
+	rowsAff, err := o.UpdateAll(exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o EventSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o EventSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("repo: update all requires at least one column argument")
+		return 0, errors.New("db: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -541,21 +781,28 @@ func (o EventSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, co
 		strmangle.SetParamNames("`", "`", 0, colNames),
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, eventPrimaryKeyColumns, len(o)))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: unable to update all in event slice")
+		return 0, errors.Wrap(err, "db: unable to update all in event slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: unable to retrieve rows affected all in update all event")
+		return 0, errors.Wrap(err, "db: unable to retrieve rows affected all in update all event")
 	}
 	return rowsAff, nil
+}
+
+// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
+// UpsertP panics on error.
+func (o *Event) UpsertP(exec boil.Executor, updateColumns, insertColumns boil.Columns) {
+	if err := o.Upsert(exec, updateColumns, insertColumns); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 var mySQLEventUniqueColumns = []string{
@@ -565,17 +812,19 @@ var mySQLEventUniqueColumns = []string{
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *Event) Upsert(ctx context.Context, exec boil.ContextExecutor, updateColumns, insertColumns boil.Columns) error {
+func (o *Event) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
-		return errors.New("repo: no events provided for upsert")
+		return errors.New("db: no events provided for upsert")
 	}
-	if !boil.TimestampsAreSkipped(ctx) {
-		currTime := time.Now().In(boil.GetLocation())
+	currTime := time.Now().In(boil.GetLocation())
 
-		if o.CreatedAt.IsZero() {
-			o.CreatedAt = currTime
-		}
-		queries.SetScanner(&o.UpdatedAt, currTime)
+	if o.CreatedAt.IsZero() {
+		o.CreatedAt = currTime
+	}
+	queries.SetScanner(&o.UpdatedAt, currTime)
+
+	if err := o.doBeforeUpsertHooks(exec); err != nil {
+		return err
 	}
 
 	nzDefaults := queries.NonZeroDefaultSet(eventColumnsWithDefault, o)
@@ -626,7 +875,7 @@ func (o *Event) Upsert(ctx context.Context, exec boil.ContextExecutor, updateCol
 		)
 
 		if !updateColumns.IsNone() && len(update) == 0 {
-			return errors.New("repo: unable to upsert events, could not build update column list")
+			return errors.New("db: unable to upsert events, could not build update column list")
 		}
 
 		ret = strmangle.SetComplement(ret, nzUniques)
@@ -656,15 +905,14 @@ func (o *Event) Upsert(ctx context.Context, exec boil.ContextExecutor, updateCol
 		returns = queries.PtrsFromMapping(value, cache.retMapping)
 	}
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.query)
-		fmt.Fprintln(writer, vals)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.query)
+		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.ExecContext(ctx, cache.query, vals...)
+	result, err := exec.Exec(cache.query, vals...)
 
 	if err != nil {
-		return errors.Wrap(err, "repo: unable to upsert for events")
+		return errors.Wrap(err, "db: unable to upsert for events")
 	}
 
 	var lastID int64
@@ -687,18 +935,17 @@ func (o *Event) Upsert(ctx context.Context, exec boil.ContextExecutor, updateCol
 
 	uniqueMap, err = queries.BindMapping(eventType, eventMapping, nzUniques)
 	if err != nil {
-		return errors.Wrap(err, "repo: unable to retrieve unique values for events")
+		return errors.Wrap(err, "db: unable to retrieve unique values for events")
 	}
 	nzUniqueCols = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), uniqueMap)
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, cache.retQuery)
-		fmt.Fprintln(writer, nzUniqueCols...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
+		fmt.Fprintln(boil.DebugWriter, nzUniqueCols...)
 	}
-	err = exec.QueryRowContext(ctx, cache.retQuery, nzUniqueCols...).Scan(returns...)
+	err = exec.QueryRow(cache.retQuery, nzUniqueCols...).Scan(returns...)
 	if err != nil {
-		return errors.Wrap(err, "repo: unable to populate default values for events")
+		return errors.Wrap(err, "db: unable to populate default values for events")
 	}
 
 CacheNoHooks:
@@ -708,62 +955,109 @@ CacheNoHooks:
 		eventUpsertCacheMut.Unlock()
 	}
 
-	return nil
+	return o.doAfterUpsertHooks(exec)
+}
+
+// DeleteP deletes a single Event record with an executor.
+// DeleteP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *Event) DeleteP(exec boil.Executor) int64 {
+	rowsAff, err := o.Delete(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // Delete deletes a single Event record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *Event) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *Event) Delete(exec boil.Executor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("repo: no Event provided for delete")
+		return 0, errors.New("db: no Event provided for delete")
+	}
+
+	if err := o.doBeforeDeleteHooks(exec); err != nil {
+		return 0, err
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), eventPrimaryKeyMapping)
 	sql := "DELETE FROM `events` WHERE `id`=?"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args...)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args...)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: unable to delete from events")
+		return 0, errors.Wrap(err, "db: unable to delete from events")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: failed to get rows affected by delete for events")
+		return 0, errors.Wrap(err, "db: failed to get rows affected by delete for events")
+	}
+
+	if err := o.doAfterDeleteHooks(exec); err != nil {
+		return 0, err
 	}
 
 	return rowsAff, nil
 }
 
+// DeleteAllP deletes all rows, and panics on error.
+func (q eventQuery) DeleteAllP(exec boil.Executor) int64 {
+	rowsAff, err := q.DeleteAll(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // DeleteAll deletes all matching rows.
-func (q eventQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q eventQuery) DeleteAll(exec boil.Executor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("repo: no eventQuery provided for delete all")
+		return 0, errors.New("db: no eventQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
-	result, err := q.Query.ExecContext(ctx, exec)
+	result, err := q.Query.Exec(exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: unable to delete all from events")
+		return 0, errors.Wrap(err, "db: unable to delete all from events")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: failed to get rows affected by deleteall for events")
+		return 0, errors.Wrap(err, "db: failed to get rows affected by deleteall for events")
 	}
 
 	return rowsAff, nil
 }
 
+// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
+func (o EventSlice) DeleteAllP(exec boil.Executor) int64 {
+	rowsAff, err := o.DeleteAll(exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o EventSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o EventSlice) DeleteAll(exec boil.Executor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
+	}
+
+	if len(eventBeforeDeleteHooks) != 0 {
+		for _, obj := range o {
+			if err := obj.doBeforeDeleteHooks(exec); err != nil {
+				return 0, err
+			}
+		}
 	}
 
 	var args []interface{}
@@ -775,28 +1069,42 @@ func (o EventSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (i
 	sql := "DELETE FROM `events` WHERE " +
 		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, eventPrimaryKeyColumns, len(o))
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, args)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, args)
 	}
-	result, err := exec.ExecContext(ctx, sql, args...)
+	result, err := exec.Exec(sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: unable to delete all from event slice")
+		return 0, errors.Wrap(err, "db: unable to delete all from event slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "repo: failed to get rows affected by deleteall for events")
+		return 0, errors.Wrap(err, "db: failed to get rows affected by deleteall for events")
+	}
+
+	if len(eventAfterDeleteHooks) != 0 {
+		for _, obj := range o {
+			if err := obj.doAfterDeleteHooks(exec); err != nil {
+				return 0, err
+			}
+		}
 	}
 
 	return rowsAff, nil
 }
 
+// ReloadP refetches the object from the database with an executor. Panics on error.
+func (o *Event) ReloadP(exec boil.Executor) {
+	if err := o.Reload(exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *Event) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindEvent(ctx, exec, o.ID)
+func (o *Event) Reload(exec boil.Executor) error {
+	ret, err := FindEvent(exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -805,9 +1113,18 @@ func (o *Event) Reload(ctx context.Context, exec boil.ContextExecutor) error {
 	return nil
 }
 
+// ReloadAllP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *EventSlice) ReloadAllP(exec boil.Executor) {
+	if err := o.ReloadAll(exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *EventSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *EventSlice) ReloadAll(exec boil.Executor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
@@ -824,9 +1141,9 @@ func (o *EventSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) e
 
 	q := queries.Raw(sql, args...)
 
-	err := q.Bind(ctx, exec, &slice)
+	err := q.Bind(nil, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "repo: unable to reload all in EventSlice")
+		return errors.Wrap(err, "db: unable to reload all in EventSlice")
 	}
 
 	*o = slice
@@ -834,21 +1151,30 @@ func (o *EventSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) e
 	return nil
 }
 
+// EventExistsP checks if the Event row exists. Panics on error.
+func EventExistsP(exec boil.Executor, iD int64) bool {
+	e, err := EventExists(exec, iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
 // EventExists checks if the Event row exists.
-func EventExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func EventExists(exec boil.Executor, iD int64) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from `events` where `id`=? limit 1)"
 
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, sql)
-		fmt.Fprintln(writer, iD)
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, sql)
+		fmt.Fprintln(boil.DebugWriter, iD)
 	}
-	row := exec.QueryRowContext(ctx, sql, iD)
+	row := exec.QueryRow(sql, iD)
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "repo: unable to check if events exists")
+		return false, errors.Wrap(err, "db: unable to check if events exists")
 	}
 
 	return exists, nil
