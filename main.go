@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"nova/db"
+	"strconv"
 
 	"github.com/labstack/echo"
+	j "github.com/ricardolonga/jsongo"
 	. "github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
@@ -35,10 +37,26 @@ func main() {
 		justDie(err)
 		return c.JSON(http.StatusOK, users)
 	})
+	e.DELETE("/users/:id", func(c echo.Context) error {
+		id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+		user, err := db.FindUserG(id)
+		justDie(err)
+		rowsAff, err := user.DeleteG()
+		fmt.Println("debug", rowsAff, err)
+		json := j.Object().Put("rowsAff", rowsAff)
+		justDie(err)
+		return c.JSON(http.StatusOK, json)
+	})
 	e.POST("/users", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, "")
 	})
 	e.PUT("/users/:id", func(c echo.Context) error {
+		id := c.Param("id")
+		user, err := db.Users(
+			Where("id = ?", id),
+		).OneG()
+		justDie(err)
+		user.Name = c.FormValue("name")
 		return c.JSON(http.StatusOK, "")
 	})
 
