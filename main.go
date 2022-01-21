@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"nova/db"
 	"strconv"
@@ -22,10 +21,8 @@ func main() {
 		return c.JSON(http.StatusOK, users)
 	})
 	e.GET("/users/:id", func(c echo.Context) error {
-		id := c.Param("id")
-		user, err := db.Users(
-			Where("id = ?", id),
-		).OneG()
+		id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+		user, err := db.FindUserG(id)
 		justDie(err)
 		return c.JSON(http.StatusOK, user)
 	})
@@ -33,7 +30,6 @@ func main() {
 		users, err := db.Users(
 			Where("name = ?", c.QueryParam("name")),
 		).AllG()
-		fmt.Println("debug", users, err)
 		justDie(err)
 		return c.JSON(http.StatusOK, users)
 	})
@@ -42,7 +38,6 @@ func main() {
 		user, err := db.FindUserG(id)
 		justDie(err)
 		rowsAff, err := user.DeleteG()
-		fmt.Println("debug", rowsAff, err)
 		json := j.Object().Put("rowsAff", rowsAff)
 		justDie(err)
 		return c.JSON(http.StatusOK, json)
