@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"nova/db"
 	"strconv"
@@ -55,13 +56,16 @@ func main() {
 		return c.JSON(http.StatusOK, user)
 	})
 	e.PUT("/users/:id", func(c echo.Context) error {
-		id := c.Param("id")
-		user, err := db.Users(
-			Where("id = ?", id),
-		).OneG()
-		justDie(err)
-		user.Name = c.FormValue("name")
-		return c.JSON(http.StatusOK, "")
+		id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+		user := db.FindUserGP(id)
+		user.Name = c.FormValue("Name")
+		age, _ := strconv.Atoi(c.FormValue("Age"))
+		user.Age = null.Int{age, true}
+		fmt.Println("debug: ", user)
+		success := user.UpdateGP(boil.Infer())
+		json := j.Object().Put("success", success).Put("user", user)
+
+		return c.JSON(http.StatusOK, json)
 	})
 
 	e.Logger.Fatal(e.Start(":3000"))
